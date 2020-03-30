@@ -30,6 +30,7 @@ var (
 	logBatches  bool
 	inTableTag  bool
 	hashWorkers bool
+	useHTTP     bool
 
 	debug int
 )
@@ -64,6 +65,7 @@ func init() {
 
 	// TODO - This flag could potentially be done as a string/enum with other options besides no-hash, round-robin, etc
 	pflag.Bool("hash-workers", false, "Whether to consistently hash insert data to the same workers (i.e., the data for a particular host always goes to the same worker)")
+	pflag.Bool("use-http", false, "Whether to use http driver, default false.")
 
 	pflag.Int("debug", 0, "Debug printing (choices: 0, 1, 2). (default 0)")
 
@@ -86,6 +88,7 @@ func init() {
 
 	logBatches = viper.GetBool("log-batches")
 	hashWorkers = viper.GetBool("hash-workers")
+	useHTTP = viper.GetBool("use-http")
 	debug = viper.GetInt("debug")
 
 	loader = load.GetBenchmarkRunner(config)

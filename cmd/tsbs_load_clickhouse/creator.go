@@ -185,12 +185,16 @@ func generateTagsTableQuery(tagNames, tagTypes []string) string {
 	index := "id"
 
 	return fmt.Sprintf(
-		"CREATE TABLE tags(\n"+
+		"CREATE TABLE %s.tags(\n"+
 			"created_date Date     DEFAULT today(),\n"+
-			"created_at   DateTime DEFAULT now(),\n"+
+			"created_at DateTime DEFAULT now() CODEC(DoubleDelta, LZ4),\n"+
 			"id           UInt32,\n"+
 			"%s"+
-			") ENGINE = MergeTree(created_date, (%s), 8192)",
+			") ENGINE = MergeTree\n"+
+			"Partition by toYYYYMMDD(created_at)\n"+
+			"Order by (%s, created_at)\n"+
+			"SETTINGS index_granularity=1024;",
+		loader.DBName,
 		cols,
 		index)
 }
@@ -229,15 +233,18 @@ func createMetricsTable(db *sqlx.DB, tableSpec []string) {
 	}
 
 	sql := fmt.Sprintf(`
-			CREATE TABLE %s (
+			CREATE TABLE %s.%s (
 				created_date    Date     DEFAULT today(),
-				created_at      DateTime DEFAULT now(),
+				created_at DateTime DEFAULT now() CODEC(DoubleDelta, LZ4),
 				time            String,
 				tags_id         UInt32,
 				%s,
 				additional_tags String   DEFAULT ''
-			) ENGINE = MergeTree(created_date, (tags_id, created_at), 8192)
-			`,
+			) ENGINE = MergeTree 
+			Partition by toYYYYMMDD(created_at) 
+			Order by (tags_id,created_at) 
+			SETTINGS index_granularity=1024;`,
+		loader.DBName,
 		tableName,
 		strings.Join(columnsWithType, ","))
 	if debug > 0 {
@@ -252,6 +259,14 @@ func createMetricsTable(db *sqlx.DB, tableSpec []string) {
 // getConnectString() builds connect string to ClickHouse
 // db - whether database specification should be added to the connection string
 func getConnectString(db bool) string {
+	// ClickHouse ex.:
+	// http://default:passwd@127.0.0.1:8123/default
+	if useHTTP {
+		if db {
+			return fmt.Sprintf("http://%s:%s@%s:8123/%s", user, password, host, loader.DatabaseName())
+		}
+		return fmt.Sprintf("http://%s:%s@%s:8123", user, password, host)
+	}
 	// connectString: tcp://127.0.0.1:9000?debug=true
 	// ClickHouse ex.:
 	// tcp://host1:9000?username=user&password=qwerty&database=clicks&read_timeout=10&write_timeout=20&alt_hosts=host2:9000,host3:9000

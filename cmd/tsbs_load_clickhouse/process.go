@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/jmoiron/sqlx"
-	_ "github.com/kshvakov/clickhouse"
+	_ "github.com/mailru/go-clickhouse"
 	"github.com/timescale/tsbs/load"
 )
 
@@ -72,12 +72,13 @@ func insertTags(db *sqlx.DB, startID int, rows [][]string, returnResults bool) m
 	cols := tableCols["tags"]
 	// Add id column to prepared statement
 	sql := fmt.Sprintf(`
-		INSERT INTO tags(
+		INSERT INTO %s.tags(
 			id,%s
 		) VALUES (
 			?%s
 		)
 		`,
+		loader.DBName,
 		strings.Join(cols, ","),
 		strings.Repeat(",?", len(cols)))
 	if debug > 0 {
@@ -113,6 +114,7 @@ func insertTags(db *sqlx.DB, startID int, rows [][]string, returnResults bool) m
 			variadicArgs[i+1] = convertBasedOnType(tagColumnTypes[i], value)
 		}
 
+		fmt.Println(variadicArgs)
 		// And now expand []interface{} with the same data as 'row' contains (plus 'id') in Exec(args ...interface{})
 		_, err := stmt.Exec(variadicArgs...)
 		if err != nil {
@@ -214,11 +216,11 @@ func (p *processor) processCSI(tableName string, rows []*insertData) uint64 {
 		// additional_tags
 		tagsIdPosition = 3 // what is the position of the tags_id in the row - nil value
 		r = append(r,
-			timeUTC,    // created_date
-			timeUTC,    // created_at
-			TimeUTCStr, // time
-			nil,        // tags_id
-			json)       // additional_tags
+			strings.Fields(TimeUTCStr)[0], // created_date
+			timeUTC,                       // created_at
+			TimeUTCStr,                    // time
+			nil,                           // tags_id
+			json)                          // additional_tags
 
 		if inTableTag {
 			r = append(r, tags[0]) // tags[0] = hostname
@@ -310,11 +312,11 @@ func (p *processor) processCSI(tableName string, rows []*insertData) uint64 {
 			panic(err)
 		}
 	}
-	err = stmt.Close()
+	err = tx.Commit()
 	if err != nil {
 		panic(err)
 	}
-	err = tx.Commit()
+	err = stmt.Close()
 	if err != nil {
 		panic(err)
 	}
