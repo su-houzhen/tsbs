@@ -10,14 +10,14 @@ import (
 
 // Formats supported for generation
 const (
-	FormatCassandra   = "cassandra"
-	FormatClickhouse  = "clickhouse"
-	FormatInflux      = "influx"
-	FormatMongo       = "mongo"
-	FormatSiriDB      = "siridb"
-	FormatTimescaleDB = "timescaledb"
-	FormatAkumuli     = "akumuli"
-	FormatCrateDB 	  = "cratedb"
+	FormatCassandra       = "cassandra"
+	FormatClickhouse      = "clickhouse"
+	FormatInflux          = "influx"
+	FormatMongo           = "mongo"
+	FormatSiriDB          = "siridb"
+	FormatTimescaleDB     = "timescaledb"
+	FormatAkumuli         = "akumuli"
+	FormatCrateDB         = "cratedb"
 	FormatVictoriaMetrics = "victoriametrics"
 )
 
